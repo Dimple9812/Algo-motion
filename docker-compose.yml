@@ -1,0 +1,124 @@
+# AlgoMotion local stack.  docker compose up --build   →   http://localhost:3000
+name: algomotion
+
+x-service-env: &service-env
+  DB_URL: jdbc:postgresql://postgres:5432/algomotion
+  DB_USER: algomotion
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+  INTERNAL_TOKEN: ${INTERNAL_TOKEN:?set INTERNAL_TOKEN in .env}
+  KAFKA_BOOTSTRAP: kafka:9092
+  CATALOG_URL: http://problem-catalog-service:8083
+  EXECUTION_URL: http://code-execution-service:8086
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+
+x-healthy: &healthy
+  condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: algomotion
+      POSTGRES_USER: algomotion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U algomotion -d algomotion"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      retries: 20
+
+  # Pre-pulls the image used for sandbox containers so the first submission is not slow.
+  sandbox-image:
+    image: ${EXECUTION_IMAGE:-eclipse-temurin:21-jdk-alpine}
+    command: ["true"]
+    restart: "no"
+
+  problem-catalog-service:
+    build: { context: ., dockerfile: backend/Dockerfile, args: { SERVICE: problem-catalog-service } }
+    environment: { <<: *service-env, PORT: 8083 }
+    depends_on: { postgres: *healthy }
+
+  user-progress-service:
+    build: { context: ., dockerfile: backend/Dockerfile, args: { SERVICE: user-progress-service } }
+    environment: { <<: *service-env, PORT: 8081, COOKIE_SECURE: "${COOKIE_SECURE:-false}" }
+    depends_on: { postgres: *healthy, problem-catalog-service: *healthy }
+
+  algorithm-visualization-service:
+    build: { context: ., dockerfile: backend/Dockerfile, args: { SERVICE: algorithm-visualization-service } }
+    environment: { <<: *service-env, PORT: 8082 }
+
+  code-execution-service:
+    build: { context: ., dockerfile: backend/code-execution-service/Dockerfile }
+    environment:
+      <<: *service-env
+      EXECUTION_SANDBOX: ${EXECUTION_SANDBOX:-docker}
+      EXECUTION_IMAGE: ${EXECUTION_IMAGE:-eclipse-temurin:21-jdk-alpine}
+      EXECUTION_WORK_DIR: /tmp/algomotion-sandbox
+    volumes:
+      # The service launches sibling sandbox containers. Only this service has the socket — never the sandboxes.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Same absolute path on host and in container so bind mounts into sandboxes resolve.
+      - /tmp/algomotion-sandbox:/tmp/algomotion-sandbox
+    depends_on: { postgres: *healthy, kafka: *healthy, problem-catalog-service: *healthy }
+
+  ai-solution-service:
+    build: { context: ., dockerfile: backend/ai-solution-service/Dockerfile }
+    environment:
+      <<: *service-env
+      AI_PROVIDER: ${AI_PROVIDER:-fallback}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+    depends_on: { postgres: *healthy, kafka: *healthy, code-execution-service: *healthy }
+
+  api-gateway:
+    build: { context: ., dockerfile: backend/Dockerfile, args: { SERVICE: api-gateway } }
+    environment:
+      PORT: 8080
+      REDIS_HOST: redis
+      USER_SERVICE_URL: http://user-progress-service:8081
+      VIZ_SERVICE_URL: http://algorithm-visualization-service:8082
+      CATALOG_SERVICE_URL: http://problem-catalog-service:8083
+      AI_SERVICE_URL: http://ai-solution-service:8085
+      EXECUTION_SERVICE_URL: http://code-execution-service:8086
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      AI_PROVIDER: ${AI_PROVIDER:-fallback}
+      EXECUTION_SANDBOX: ${EXECUTION_SANDBOX:-docker}
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    ports: ["8080:8080"]
+    depends_on: { redis: *healthy }
+
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    ports: ["3000:80"]
+    depends_on: [api-gateway]
+
+volumes:
+  pgdata:

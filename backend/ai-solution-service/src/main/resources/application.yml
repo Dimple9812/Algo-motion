@@ -1,0 +1,56 @@
+server:
+  port: ${PORT:8085}
+  shutdown: graceful
+spring:
+  application.name: ai-solution-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/algomotion}
+    username: ${DB_USER:algomotion}
+    password: ${DB_PASSWORD:algomotion}
+    hikari:
+      maximum-pool-size: 5
+      schema: solutions
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+    properties.hibernate.default_schema: solutions
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: ai-solution-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    listener.concurrency: 2
+  servlet.multipart:
+    max-file-size: 5MB
+    max-request-size: 6MB
+  flyway:
+    schemas: solutions
+    default-schema: solutions
+algomotion:
+  jwt:
+    secret: ${JWT_SECRET}
+  internal:
+    token: ${INTERNAL_TOKEN}
+  messaging.enabled: ${MESSAGING_ENABLED:true}
+management:
+  endpoints.web.exposure.include: health,info,metrics,prometheus
+  endpoint.health.probes.enabled: true
+logging:
+  pattern.level: "%5p [${spring.application.name},%X{correlationId:-}]"
+springdoc:
+  api-docs.path: /v3/api-docs
+ai:
+  provider: ${AI_PROVIDER:fallback}          # openai | anthropic | fallback
+  model: ${AI_MODEL:}
+  api-key: ${AI_API_KEY:}
+  base-url: ${AI_BASE_URL:}
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:60}
+  catalog-url: ${CATALOG_URL:http://localhost:8083}
+  execution-url: ${EXECUTION_URL:http://localhost:8086}
+  max-pdf-pages: 5

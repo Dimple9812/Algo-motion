@@ -1,0 +1,25 @@
+# dependencies & builds
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+frontend/node_modules/.tmp/
+
+# test output
+frontend/test-results/
+frontend/playwright-report/
+frontend/coverage/
+
+# local runtime
+.run/
+.env
+*.log
+
+# editors / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# python
+__pycache__/

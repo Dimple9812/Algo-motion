@@ -1,0 +1,57 @@
+server:
+  port: ${PORT:8086}
+  shutdown: graceful
+spring:
+  application.name: code-execution-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/algomotion}
+    username: ${DB_USER:algomotion}
+    password: ${DB_PASSWORD:algomotion}
+    hikari:
+      maximum-pool-size: 5
+      schema: execution
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+    properties.hibernate.default_schema: execution
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: code-execution-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    listener.concurrency: 2
+  flyway:
+    schemas: execution
+    default-schema: execution
+algomotion:
+  jwt:
+    secret: ${JWT_SECRET}
+  internal:
+    token: ${INTERNAL_TOKEN}
+  messaging.enabled: ${MESSAGING_ENABLED:true}
+management:
+  endpoints.web.exposure.include: health,info,metrics,prometheus
+  endpoint.health.probes.enabled: true
+logging:
+  pattern.level: "%5p [${spring.application.name},%X{correlationId:-}]"
+springdoc:
+  api-docs.path: /v3/api-docs
+execution:
+  sandbox: ${EXECUTION_SANDBOX:docker}           # docker | local (local = DEV ONLY, not isolated)
+  docker-image: ${EXECUTION_IMAGE:eclipse-temurin:21-jdk-alpine}
+  catalog-url: ${CATALOG_URL:http://localhost:8083}
+  max-concurrent: ${EXECUTION_MAX_CONCURRENT:2}
+  compile-timeout-ms: 15000
+  test-timeout-ms: 3000
+  memory-mb: 256
+  max-output-bytes: 65536
+  max-source-bytes: 65536
+  max-tests: 25
+  # Host path shared with the Docker daemon (must be mounted at the same path when this service runs in a container)
+  work-dir: ${EXECUTION_WORK_DIR:}
