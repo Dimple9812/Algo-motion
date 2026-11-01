@@ -47,7 +47,7 @@ Useful variables:
 - **backend:** `mvn verify` with Postgres/Redis services.
 - **docker:** validates the Compose file and builds the images.
 
-The workflow has not run yet on GitHub at the time of writing.
+All four jobs passed on the first push to `main`.
 
 ## Production checklist
 

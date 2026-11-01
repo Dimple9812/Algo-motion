@@ -18,6 +18,7 @@ This report separates what was **run and observed** from what was **implemented 
 | Backend | `mvn test` (all modules, PostgreSQL via `TEST_DB_URL`, embedded Kafka) | **61 / 61** passed, BUILD SUCCESS |
 | Java↔TS trace conformance | `ConformanceTest` (part of the above) | 10 fixtures match (operations, lines, snapshots, result) |
 | Compose file | `docker compose config` | valid |
+| GitHub Actions (first push, run 41311426653) | frontend (incl. Playwright), catalog verify, backend `mvn verify` with Testcontainers, Docker image builds | **all 4 jobs passed** |
 
 ## Manual end-to-end smoke tests (run against the live local stack)
 
@@ -38,10 +39,9 @@ Screenshots in `docs/screenshots/` were captured from this running stack.
 | Item | Status | Why |
 |---|---|---|
 | Docker sandbox (`EXECUTION_SANDBOX=docker`) | command-line construction and output parsing are unit-tested; **never executed** | no Docker daemon |
-| `docker compose up` / image builds | Dockerfiles written, compose validated; **not built or started** | no Docker daemon / registry |
+| `docker compose up` | compose validated, all images **built in GitHub Actions**; the stack was **not started** | no Docker daemon here |
 | OpenAI-compatible and Anthropic providers | implemented; request/response mapping covered by fixture tests only | no API key used |
 | OCR (tesseract) for image uploads | code path implemented; tesseract absent here, so the "OCR unavailable" error path was the one observed | binary not installed |
-| GitHub Actions workflow | written; **not yet run on GitHub** | runs after the first push |
 | Public deployment | none | out of scope; no live URL is claimed |
 | Performance / load | not measured | no benchmarks are claimed |
 

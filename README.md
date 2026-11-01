@@ -269,7 +269,7 @@ See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kuber
 
 ## Known limitations
 
-- **Docker sandbox not exercised end-to-end in the development environment used to build this.** Image registries were unreachable there, so live runs used the dev-only `local` runner. The Docker runner's command flags and transcript parser are unit-tested, and CI builds the images, but a full sandboxed run should be verified on a Docker host. Docker Compose likewise was validated with `docker compose config` only.
+- **Docker sandbox not exercised end-to-end in the development environment used to build this.** Image registries were unreachable there, so live runs used the dev-only `local` runner. The Docker runner's command flags and transcript parser are unit-tested, and CI builds the images, but a full sandboxed run should be verified on a Docker host. All images build in CI, but the Compose stack itself has not been started.
 - The execution service holds the Docker socket (a privileged component). Production should use a separate runner host or a hardened runtime (gVisor, Firecracker).
 - The Java trace service implements 8 algorithms (conformance-tested). The other ~100 are traced in the browser engine only.
 - XP events are reported by the client (validated, idempotent and rate-limited), so a determined user could award themselves XP. Server-confirmed problem XP from execution results is on the roadmap.
