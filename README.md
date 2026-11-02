@@ -268,7 +268,7 @@ Backend integration tests use Testcontainers by default. Where Docker images can
 
 ## Deployment
 
-See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kubernetes cluster with managed PostgreSQL, Redis and Kafka (or the Compose stack). The code-execution service needs a host where it may start containers, ideally a dedicated node or a gVisor/Kata-backed runtime. **Live demo:** frontend at https://algomotion-kappa.vercel.app (Vercel). Its `/api` is proxied to the gateway on Render's free tier: six services, the restricted code runner, in-process dispatch instead of Kafka (no free Kafka), and the deterministic catalog fallback instead of an LLM.
+See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kubernetes cluster with managed PostgreSQL, Redis and Kafka (or the Compose stack). The code-execution service needs a host where it may start containers, ideally a dedicated node or a gVisor/Kata-backed runtime. **Live demo:** frontend at https://algomotion-kappa.vercel.app (Vercel). Its `/api` is proxied to the gateway on Render's free tier: six services, the restricted code runner, in-process dispatch instead of Kafka (no free Kafka), and Groq's free tier (`openai/gpt-oss-120b`) as the AI model.
 
 ## Known limitations
 
@@ -279,7 +279,7 @@ See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kuber
 - The Java trace service implements 8 algorithms (conformance-tested). The other ~100 are traced in the browser engine only.
 - XP events are reported by the client (validated, idempotent and rate-limited), so a determined user could award themselves XP. Server-confirmed problem XP from execution results is on the roadmap.
 - The problem catalog has 75 problems across 26 topics, but not every topic has all three difficulties yet (e.g. recursion, queues, tries, prefix sums lack a Hard).
-- No live LLM provider was exercised. The OpenAI-compatible and Anthropic adapters are implemented, but only the deterministic fallback and fixture-based tests were run.
+- The live demo uses the OpenAI-compatible adapter with Groq (`openai/gpt-oss-120b`, free tier). It has been exercised end to end there. The Anthropic adapter is implemented but has only been tested with fixtures. Free-tier rate limits apply, and generated code can fail its tests; the UI reports that honestly.
 - The catalog fallback matches by keywords, and catalog statements use original story wording. A generic paraphrase ("given an array nums and a target, return the indices…") may therefore not match "two-sum". It then fails with a clear message instead of guessing. Naming the classic problem helps.
 - OCR quality depends on the `tesseract` binary in the container. Without it, image uploads return a clear "OCR unavailable" error.
 

@@ -7,6 +7,7 @@
 | Frontend | Vercel project `algomotion` (root `frontend/`, auto-deploys on push to `main`) | `frontend/vercel.json`: SPA fallback, security headers, `/api/*` proxied to the gateway, so cookies stay same-origin |
 | Gateway | Render `algomotion-gateway` | `REDIS_URL` → Render Key Value; `*_SERVICE_URL` → the services' public `onrender.com` URLs; `STATUS_TIMEOUT=20s` |
 | Services | Render `algomotion-{users,catalog,viz,ai,exec}` (Docker, free, Singapore) | `DATABASE_URL` (Render internal connection string), `JWT_SECRET`, `INTERNAL_TOKEN`, `MESSAGING_ENABLED=false`, small `JAVA_OPTS` heaps |
+| AI model | `algomotion-ai` | `AI_PROVIDER=openai`, `AI_BASE_URL=https://api.groq.com/openai/v1`, `AI_MODEL=openai/gpt-oss-120b`, `AI_API_KEY` (Groq key, free tier) |
 | Code runner | `algomotion-exec`, built from `backend/code-execution-service/Dockerfile.restricted` | `EXECUTION_SANDBOX=restricted`, `EXECUTION_MAX_CONCURRENT=1`, `EXECUTION_MEMORY_MB=128`, `EXECUTION_COMPILE_TIMEOUT_MS=60000`, `EXECUTION_TEST_TIMEOUT_MS=8000` (0.1-CPU instances are slow) |
 
 Render services have auto-deploy **off** to save free build minutes. After pushing backend changes, trigger a deploy per service in the Render dashboard.

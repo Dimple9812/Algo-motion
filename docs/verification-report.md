@@ -49,6 +49,8 @@ Run from a throwaway Vercel Sandbox against the public URL https://algomotion-ka
 | Wrong answer / infinite loop | `COMPLETED 0/1` / `TIMEOUT` |
 | `System.getenv("DATABASE_URL")` / socket to example.com | blocked: `AccessControlException` |
 | AI solver (fallback, two-sum) | `COMPLETED`, both approaches `TESTS_PASSED` 5/5 in 44 s |
+| AI solver with Groq `openai/gpt-oss-120b`: anagram check (not in catalog phrasing) | `COMPLETED` in 41 s; sort-and-compare and frequency-count both `TESTS_PASSED` 5/5 |
+| AI solver with Groq: trailing zeros of n! | `COMPLETED` in 29 s; both approaches `TESTS_PASSED` |
 
 Issues found and fixed during deployment:
 - The no-Kafka dispatcher stopped polling while executions were still queued.
@@ -62,7 +64,7 @@ Issues found and fixed during deployment:
 |---|---|---|
 | Docker sandbox (`EXECUTION_SANDBOX=docker`) | command-line construction and output parsing are unit-tested; **never executed** | no Docker daemon |
 | `docker compose up` | compose validated, all images **built in GitHub Actions**; the stack was **not started** | no Docker daemon here |
-| OpenAI-compatible and Anthropic providers | implemented; request/response mapping covered by fixture tests only | no API key used |
+| Anthropic provider | implemented; covered by fixture tests only | no Anthropic key used (the OpenAI-compatible provider is verified live with Groq) |
 | OCR (tesseract) for image uploads | code path implemented; tesseract absent here, so the "OCR unavailable" error path was the one observed | binary not installed |
 | Performance / load | not measured | no benchmarks are claimed |
 
