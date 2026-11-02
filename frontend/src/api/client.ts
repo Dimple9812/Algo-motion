@@ -91,6 +91,10 @@ export async function api<T>(
     if (await refreshSession()) return api<T>(path, { ...init, retry: false });
   }
   if (res.status === 502 || res.status === 503 || res.status === 504) throw new OfflineError();
+  // The gateway always answers with JSON. Anything else (an HTML 404 page or SPA fallback from a
+  // static host with no backend behind /api) means the API is not deployed: treat it as offline.
+  if (res.status !== 204 && !(res.headers.get('content-type') ?? '').includes('json'))
+    throw new OfflineError();
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
     let code: string | undefined;
