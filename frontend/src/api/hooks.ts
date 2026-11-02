@@ -307,5 +307,7 @@ export function useBackendStatus() {
       }
     },
     staleTime: 30_000,
+    // Hosted demos may sleep when idle: keep checking while the backend looks offline so the UI recovers on its own.
+    refetchInterval: (q) => (q.state.data === null ? 10_000 : false),
   });
 }

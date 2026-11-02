@@ -18,6 +18,8 @@ gateway:
     enabled: ${RATE_LIMIT_ENABLED:true}
   ai-provider: ${AI_PROVIDER:fallback}
   execution-sandbox: ${EXECUTION_SANDBOX:docker}
+  # per-service health probe timeout for /api/v1/status (raise on slow or sleeping hosts)
+  status-timeout: ${STATUS_TIMEOUT:2s}
 management:
   endpoints.web.exposure.include: health,info,metrics,prometheus,gateway
   endpoint.health.probes.enabled: true

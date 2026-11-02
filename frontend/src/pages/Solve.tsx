@@ -63,7 +63,7 @@ export default function Solve() {
       {offline && (
         <ErrorState
           title="Backend not reachable"
-          message="The AI solver runs on the backend (AI solution service + code execution sandbox). Start the stack with docker compose up, or explore the visualizer and problem library in the meantime."
+          message="The AI solver runs on the backend (AI solution service + code execution sandbox). On the hosted demo the backend sleeps when idle and takes a minute or two to wake up; this page keeps checking. Running locally? Start the stack with docker compose up. Meanwhile, the visualizer and problem library work without it."
         />
       )}
       {status.data && (

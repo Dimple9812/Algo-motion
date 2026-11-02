@@ -5,7 +5,8 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("gateway")
-public record GatewayProperties(Map<String, String> services, List<String> corsOrigins, RateLimit rateLimit, String aiProvider, String executionSandbox) {
+public record GatewayProperties(Map<String, String> services, List<String> corsOrigins, RateLimit rateLimit, String aiProvider, String executionSandbox,
+                                java.time.Duration statusTimeout) {
     public record RateLimit(boolean enabled) {}
 
     public String url(String service) {

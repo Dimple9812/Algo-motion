@@ -25,7 +25,7 @@ class StatusController {
         return Flux.fromIterable(props.services().entrySet())
             .flatMap(e -> http.get().uri(e.getValue() + "/actuator/health").retrieve().bodyToMono(Map.class)
                 .map(m -> Map.entry(e.getKey(), String.valueOf(m.get("status"))))
-                .timeout(Duration.ofSeconds(2))
+                .timeout(props.statusTimeout() == null ? Duration.ofSeconds(2) : props.statusTimeout())
                 .onErrorReturn(Map.entry(e.getKey(), "DOWN")))
             .collectMap(Map.Entry::getKey, Map.Entry::getValue)
             .map(services -> {
