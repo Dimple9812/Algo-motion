@@ -48,8 +48,7 @@ public interface Dispatch {
                             while (System.currentTimeMillis() < deadline) {
                                 try {
                                     Thread.sleep(700);
-                                    worker.onExecutionCompleted(e);
-                                    break;
+                                    if (worker.onExecutionCompleted(e)) break; // otherwise still queued/running: poll again
                                 } catch (InterruptedException ie) {
                                     Thread.currentThread().interrupt();
                                     return;

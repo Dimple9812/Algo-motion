@@ -49,7 +49,7 @@ execution:
   max-concurrent: ${EXECUTION_MAX_CONCURRENT:2}
   compile-timeout-ms: 15000
   test-timeout-ms: 3000
-  memory-mb: 256
+  memory-mb: ${EXECUTION_MEMORY_MB:256}
   max-output-bytes: 65536
   max-source-bytes: 65536
   max-tests: 25

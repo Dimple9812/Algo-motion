@@ -119,7 +119,8 @@ public class SolutionWorker {
     }
 
     /** Applies an execution result to its approach (idempotent: re-applying the same result is harmless). */
-    public void onExecutionCompleted(UUID executionId) {
+    /** Applies the verdict for a finished execution. Returns false while the execution is still queued or running. */
+    public boolean onExecutionCompleted(UUID executionId) {
         JsonNode exec;
         try {
             exec = executions.get(executionId);
@@ -127,7 +128,7 @@ public class SolutionWorker {
             throw new IllegalStateException("Execution service unavailable", e); // retried by the Kafka error handler
         }
         String status = exec.path("status").asText();
-        if (status.equals("QUEUED") || status.equals("RUNNING")) return;
+        if (status.equals("QUEUED") || status.equals("RUNNING")) return false;
         int passed = exec.path("passed").asInt();
         int total = exec.path("total").asInt();
         Verdict v = switch (status) {
@@ -140,6 +141,7 @@ public class SolutionWorker {
             return ap.getSession().getId();
         }).orElse(null));
         if (sessionId != null) finishIfResolved(sessionId);
+        return true;
     }
 
     private void setVerdict(UUID approachId, Verdict v, String exec) {
