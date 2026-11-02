@@ -17,6 +17,7 @@
 ## Known limitations
 
 - The execution service needs access to the Docker socket to start sandboxes. In production, prefer a dedicated sandbox host, rootless Docker, or gVisor (`--runtime runsc`), and do not co-locate it with other services.
+- `EXECUTION_SANDBOX=restricted` (used by the live demo, where Docker is unavailable): javac and java run as uid 65534 via `setpriv` with no capabilities, no-new-privs and a cleared environment, so they can't read the service's environment (`/proc/<pid>/environ` is root-only) or files. `prlimit` caps processes and file size. The program runs under the Java 21 SecurityManager with the default policy. Verified: all 137 catalog reference solutions still pass; sockets (including to the database), file reads, process spawning, `System.getenv`, disabling the SecurityManager and reflective access were all blocked (`RestrictedSandboxTest`). Limits: it shares the kernel with the service, so a JVM or kernel exploit would not be contained, and Java 24+ removes the SecurityManager. Use the Docker sandbox wherever possible.
 - `EXECUTION_SANDBOX=local` (LocalProcessSandbox) runs code as a plain child process. It is for local development only and labels every result `local-unsafe-dev`.
 - The Docker sandbox was implemented and unit-tested for its command line, but **was not run end-to-end in the build environment** (no Docker daemon was available). See the verification report.
 - No CSRF token: the refresh cookie is `SameSite=Strict` and path-scoped, and all other endpoints use bearer tokens.

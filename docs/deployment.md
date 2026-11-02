@@ -1,5 +1,18 @@
 # Deployment
 
+## Live demo (Vercel + Render free tier)
+
+| Piece | Where | Notes |
+|---|---|---|
+| Frontend | Vercel project `algomotion` (root `frontend/`, auto-deploys on push to `main`) | `frontend/vercel.json`: SPA fallback, security headers, `/api/*` proxied to the gateway, so cookies stay same-origin |
+| Gateway | Render `algomotion-gateway` | `REDIS_URL` → Render Key Value; `*_SERVICE_URL` → the services' public `onrender.com` URLs; `STATUS_TIMEOUT=20s` |
+| Services | Render `algomotion-{users,catalog,viz,ai,exec}` (Docker, free, Singapore) | `DATABASE_URL` (Render internal connection string), `JWT_SECRET`, `INTERNAL_TOKEN`, `MESSAGING_ENABLED=false`, small `JAVA_OPTS` heaps |
+| Code runner | `algomotion-exec`, built from `backend/code-execution-service/Dockerfile.restricted` | `EXECUTION_SANDBOX=restricted`, `EXECUTION_MAX_CONCURRENT=1`, `EXECUTION_MEMORY_MB=128` |
+
+Render services have auto-deploy **off** to save free build minutes. After pushing backend changes, trigger a deploy per service in the Render dashboard.
+
+Free-tier trade-offs: services sleep after 15 minutes idle (the first request wakes them, which takes 1–3 minutes); free instance hours are shared across the workspace; there is no Kafka; and the free Postgres is deleted 30 days after creation unless upgraded.
+
 ## Docker Compose (full stack)
 
 ```bash
@@ -26,7 +39,8 @@ Useful variables:
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `EXECUTION_SANDBOX` | `docker` | `local` = unsafe dev runner |
+| `EXECUTION_SANDBOX` | `docker` | `restricted` = no-Docker hosts (privilege drop + SecurityManager); `local` = unsafe dev runner |
+| `DATABASE_URL` | – | `postgres://user:pass@host/db`; used when `DB_URL` is not set |
 | `MESSAGING_ENABLED` | `true` | `false` = in-process dispatch, no Kafka |
 | `AI_PROVIDER` | `fallback` | `openai` (any OpenAI-compatible API via `AI_BASE_URL`), `anthropic`, `fallback` |
 | `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL` | – | provider settings |

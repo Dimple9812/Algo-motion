@@ -4,6 +4,8 @@
 
 AlgoMotion is an interactive data-structures-and-algorithms lab, a coding-interview workspace and an honest AI problem solver. Every animation is replayed from a recorded execution trace, so what you see is exactly what the algorithm did, step by step. A crew of original cartoon characters reacts to those steps, but never drives them.
 
+**Live demo:** https://algomotion-kappa.vercel.app (frontend on Vercel; backend on Render's free tier, which sleeps when idle, so the first backend request can take 1–3 minutes).
+
 ![Landing page](docs/screenshots/landing.png)
 
 ---
@@ -181,6 +183,7 @@ The model can never supply rendering code: `visualization` must name one of the 
 - User code **never runs in a service JVM**. `DockerSandbox` starts a fresh container per submission with `--network none --read-only --tmpfs /tmp --memory 256m --cpus 1 --pids-limit 128 --cap-drop ALL --security-opt no-new-privileges --user 65534`. Only the source and test inputs are mounted (read-only). There is no Docker socket and there are no secrets in the sandbox.
 - Per-test `timeout -s KILL`, an overall container deadline (`docker kill`), and stdout/stderr truncation.
 - Source pre-checks (size, `public class Main`, no package), bounded concurrency (semaphore), gateway rate limits, queue/timeout/duration metrics.
+- `EXECUTION_SANDBOX=restricted` is for hosts without Docker (used by the live demo). The service runs as root and drops each compile/run to uid 65534 via `setpriv` (no capabilities, no-new-privs, cleared environment) with `prlimit` caps. Programs run under the Java 21 SecurityManager with the default policy, which blocks sockets, file access, process creation, environment reads and reflection into the JDK. This is defence in depth, **not** container isolation. Results are labelled `local-restricted`.
 - `EXECUTION_SANDBOX=local` is a **development-only** fallback (separate JVM process with heap cap, timeouts and output limits, but **no** filesystem/network isolation). It is labelled `local-unsafe-dev` in every result.
 
 See [docs/security.md](docs/security.md) for the threat model and the remaining risks. The main one: the execution service itself holds the Docker socket.
@@ -265,9 +268,11 @@ Backend integration tests use Testcontainers by default. Where Docker images can
 
 ## Deployment
 
-See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kubernetes cluster with managed PostgreSQL, Redis and Kafka (or the Compose stack). The code-execution service needs a host where it may start containers, ideally a dedicated node or a gVisor/Kata-backed runtime. **This project has not been deployed publicly yet; no live URL is claimed.**
+See [docs/deployment.md](docs/deployment.md). In short: any Docker host or Kubernetes cluster with managed PostgreSQL, Redis and Kafka (or the Compose stack). The code-execution service needs a host where it may start containers, ideally a dedicated node or a gVisor/Kata-backed runtime. **Live demo:** frontend at https://algomotion-kappa.vercel.app (Vercel). Its `/api` is proxied to the gateway on Render's free tier: six services, the restricted code runner, in-process dispatch instead of Kafka (no free Kafka), and the deterministic catalog fallback instead of an LLM.
 
 ## Known limitations
+
+- **The live demo runs on free tiers.** Services sleep after 15 minutes idle (first request 1–3 minutes). Kafka is replaced by the built-in in-process dispatch. The code runner is the `restricted` mode (no container isolation). The free Render Postgres expires 30 days after creation unless upgraded.
 
 - **Docker sandbox not exercised end-to-end in the development environment used to build this.** Image registries were unreachable there, so live runs used the dev-only `local` runner. The Docker runner's command flags and transcript parser are unit-tested, and CI builds the images, but a full sandboxed run should be verified on a Docker host. All images build in CI, but the Compose stack itself has not been started.
 - The execution service holds the Docker socket (a privileged component). Production should use a separate runner host or a hardened runtime (gVisor, Firecracker).
