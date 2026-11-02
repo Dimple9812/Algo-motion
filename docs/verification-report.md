@@ -34,6 +34,28 @@ With `EXECUTION_SANDBOX=local` and `MESSAGING_ENABLED=true` (real Kafka):
 
 Screenshots in `docs/screenshots/` were captured from this running stack.
 
+## Live deployment checks (2026-11-02)
+
+Run from a throwaway Vercel Sandbox against the public URL https://algomotion-kappa.vercel.app (Vercel → `/api` proxy → Render gateway → services):
+
+| Check | Result |
+|---|---|
+| `/api/v1/status` | all five services `UP`, `executionSandbox: restricted`, `aiProvider: fallback` |
+| Register → `/users/me` → refresh via cookie → logout | 201 / 200 / 200 / 204; cookie is `Secure; HttpOnly; SameSite=Strict; Path=/api/v1/auth` |
+| Catalog, bookmarks | problems listed; bookmark created and returned |
+| XP event, then replay of the same key | `awarded:true, xp:25`, then `awarded:false` |
+| Server-side trace (`binary-search`) | 200, 8 steps, result 3 |
+| Run the catalog's two-sum solution | `COMPLETED 5/5`, sandbox `local-restricted` |
+| Wrong answer / infinite loop | `COMPLETED 0/1` / `TIMEOUT` |
+| `System.getenv("DATABASE_URL")` / socket to example.com | blocked: `AccessControlException` |
+| AI solver (fallback, two-sum) | `COMPLETED`, both approaches `TESTS_PASSED` 5/5 in 44 s |
+
+Issues found and fixed during deployment:
+- The no-Kafka dispatcher stopped polling while executions were still queued.
+- Render does not allow dropping the capability bounding set.
+- Render mounts a fresh `/tmp`, so the image's work directory disappeared.
+- The 15 s compile limit is too short on 0.1-CPU instances (now 60 s there, configurable).
+
 ## Implemented but NOT verified here
 
 | Item | Status | Why |
@@ -42,7 +64,6 @@ Screenshots in `docs/screenshots/` were captured from this running stack.
 | `docker compose up` | compose validated, all images **built in GitHub Actions**; the stack was **not started** | no Docker daemon here |
 | OpenAI-compatible and Anthropic providers | implemented; request/response mapping covered by fixture tests only | no API key used |
 | OCR (tesseract) for image uploads | code path implemented; tesseract absent here, so the "OCR unavailable" error path was the one observed | binary not installed |
-| Public deployment | none | out of scope; no live URL is claimed |
 | Performance / load | not measured | no benchmarks are claimed |
 
 ## Known issues and limitations
