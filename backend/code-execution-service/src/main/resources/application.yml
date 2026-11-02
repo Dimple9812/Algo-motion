@@ -47,8 +47,8 @@ execution:
   docker-image: ${EXECUTION_IMAGE:eclipse-temurin:21-jdk-alpine}
   catalog-url: ${CATALOG_URL:http://localhost:8083}
   max-concurrent: ${EXECUTION_MAX_CONCURRENT:2}
-  compile-timeout-ms: 15000
-  test-timeout-ms: 3000
+  compile-timeout-ms: ${EXECUTION_COMPILE_TIMEOUT_MS:15000}
+  test-timeout-ms: ${EXECUTION_TEST_TIMEOUT_MS:3000}
   memory-mb: ${EXECUTION_MEMORY_MB:256}
   max-output-bytes: 65536
   max-source-bytes: 65536

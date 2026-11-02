@@ -43,7 +43,7 @@ public interface Dispatch {
                 public void afterCommit() {
                     pool.execute(() -> {
                         List<UUID> execs = worker.generate(id);
-                        long deadline = System.currentTimeMillis() + 180_000;
+                        long deadline = System.currentTimeMillis() + 600_000; // generous: small hosts queue runs one at a time
                         for (UUID e : execs) {
                             while (System.currentTimeMillis() < deadline) {
                                 try {
