@@ -15,9 +15,10 @@ RUN cd backend && for m in api-gateway user-progress-service algorithm-visualiza
 
 # Full JDK (javac) on Ubuntu, which ships util-linux (setpriv, prlimit).
 FROM eclipse-temurin:21-jdk
-RUN command -v setpriv && command -v prlimit && mkdir -p /app /tmp/algomotion-exec && chmod 1777 /tmp/algomotion-exec
+RUN command -v setpriv && command -v prlimit && mkdir -p /app
 COPY --from=build /app.jar /app/app.jar
 ENV EXECUTION_SANDBOX=restricted \
     JAVA_OPTS="-XX:MaxRAMPercentage=50 -Duser.timezone=UTC -Djava.io.tmpdir=/tmp/algomotion-exec"
 EXPOSE 8086
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+# Hosts may mount a fresh /tmp at runtime, so create the work directory on start.
+ENTRYPOINT ["sh", "-c", "mkdir -p /tmp/algomotion-exec && chmod 1777 /tmp/algomotion-exec && exec java $JAVA_OPTS -jar /app/app.jar"]
