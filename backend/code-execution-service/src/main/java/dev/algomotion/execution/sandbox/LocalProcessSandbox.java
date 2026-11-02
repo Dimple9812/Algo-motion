@@ -23,8 +23,13 @@ import java.util.stream.Stream;
  * it shares the kernel, and a JVM escape would not be contained. {@link DockerSandbox} remains the recommended runner.
  */
 public class LocalProcessSandbox implements Sandbox {
+    /*
+     * No --bounding-set: dropping it needs CAP_SETPCAP, which many container hosts (e.g. Render) do not grant. It is redundant
+     * here anyway: the child runs as a non-root uid with no effective/permitted/inheritable capabilities, and no-new-privs
+     * stops it from gaining any through setuid or file-capability binaries.
+     */
     static final List<String> DROP_PRIVILEGES = List.of("setpriv", "--reuid=65534", "--regid=65534", "--clear-groups", "--no-new-privs",
-        "--inh-caps=-all", "--bounding-set=-all", "prlimit", "--nproc=256", "--fsize=16777216", "--core=0");
+        "--inh-caps=-all", "prlimit", "--nproc=256", "--fsize=16777216", "--core=0");
 
     private final ExecutionProperties p;
     private final boolean restricted;
@@ -98,8 +103,9 @@ public class LocalProcessSandbox implements Sandbox {
     /** Fails fast at startup if the host cannot drop privileges (not root, or setpriv/prlimit missing). */
     public static void checkRestrictedSupport() {
         try {
-            Process pr = new ProcessBuilder(List.of("setpriv", "--reuid=65534", "--regid=65534", "--clear-groups", "prlimit", "--nproc=256", "true"))
-                .redirectErrorStream(true).start();
+            List<String> probe = new ArrayList<>(DROP_PRIVILEGES); // exactly the prefix used for submissions
+            probe.add("true");
+            Process pr = new ProcessBuilder(probe).redirectErrorStream(true).start();
             String out = new String(pr.getInputStream().readAllBytes());
             if (pr.waitFor() != 0) throw new IllegalStateException("EXECUTION_SANDBOX=restricted needs root plus setpriv/prlimit: " + out.strip());
         } catch (IOException e) {

@@ -21,7 +21,7 @@ class RestrictedSandboxTest {
     void dropsPrivilegesAndEnablesSecurityManager() {
         assertThat(restricted.name()).isEqualTo("local-restricted");
         assertThat(restricted.compileCommand()).startsWith("setpriv", "--reuid=65534", "--regid=65534", "--clear-groups", "--no-new-privs")
-            .contains("--inh-caps=-all", "--bounding-set=-all", "prlimit", "--nproc=256").endsWith("Main.java");
+            .contains("--inh-caps=-all", "prlimit", "--nproc=256").endsWith("Main.java");
         assertThat(restricted.runCommand()).startsWith("setpriv").contains("-Djava.security.manager=default", "-Xmx128m").endsWith("-cp", ".", "Main");
         assertThat(new LocalProcessSandbox(PROPS).runCommand()).startsWith("java").doesNotContain("-Djava.security.manager=default");
     }
