@@ -1,0 +1,23 @@
+# Code execution service for hosts WITHOUT Docker (e.g. Railway): EXECUTION_SANDBOX=restricted.
+# Submissions are compiled and run by a full JDK as uid 65534 via setpriv (no capabilities, no-new-privs, cleared env)
+# under the Java SecurityManager with prlimit caps. The service itself must run as root so it can drop privileges.
+# This is defence in depth, NOT container isolation — see docs/security.md. Prefer the Docker sandbox where possible.
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /src
+COPY backend/pom.xml backend/pom.xml
+COPY backend/shared-contracts backend/shared-contracts
+COPY backend/test-support backend/test-support
+COPY backend/code-execution-service backend/code-execution-service
+RUN cd backend && for m in api-gateway user-progress-service algorithm-visualization-service problem-catalog-service ai-solution-service; do \
+      mkdir -p "$m" && printf '<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion><parent><groupId>dev.algomotion</groupId><artifactId>algomotion-backend</artifactId><version>0.1.0</version></parent><artifactId>%s</artifactId><packaging>pom</packaging></project>' "$m" > "$m/pom.xml"; done \
+    && mvn -B -q -pl code-execution-service -am -DskipTests package \
+    && cp code-execution-service/target/code-execution-service-*.jar /app.jar
+
+# Full JDK (javac) on Ubuntu, which ships util-linux (setpriv, prlimit).
+FROM eclipse-temurin:21-jdk
+RUN command -v setpriv && command -v prlimit && mkdir -p /app /tmp/algomotion-exec && chmod 1777 /tmp/algomotion-exec
+COPY --from=build /app.jar /app/app.jar
+ENV EXECUTION_SANDBOX=restricted \
+    JAVA_OPTS="-XX:MaxRAMPercentage=50 -Duser.timezone=UTC -Djava.io.tmpdir=/tmp/algomotion-exec"
+EXPOSE 8086
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

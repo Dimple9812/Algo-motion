@@ -43,7 +43,7 @@ logging:
 springdoc:
   api-docs.path: /v3/api-docs
 execution:
-  sandbox: ${EXECUTION_SANDBOX:docker}           # docker | local (local = DEV ONLY, not isolated)
+  sandbox: ${EXECUTION_SANDBOX:docker}           # docker | restricted (no-Docker hosts, run as root) | local (DEV ONLY, not isolated)
   docker-image: ${EXECUTION_IMAGE:eclipse-temurin:21-jdk-alpine}
   catalog-url: ${CATALOG_URL:http://localhost:8083}
   max-concurrent: ${EXECUTION_MAX_CONCURRENT:2}

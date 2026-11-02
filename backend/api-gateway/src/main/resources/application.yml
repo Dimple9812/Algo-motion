@@ -4,8 +4,8 @@ server:
 spring:
   application.name: api-gateway
   data.redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
+    # REDIS_URL (redis://user:password@host:port, as managed Redis providers supply it) wins over host/port.
+    url: ${REDIS_URL:redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}}
 gateway:
   services:
     user-progress-service: ${USER_SERVICE_URL:http://localhost:8081}

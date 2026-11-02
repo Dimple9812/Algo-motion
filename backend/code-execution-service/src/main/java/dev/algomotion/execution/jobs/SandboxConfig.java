@@ -19,6 +19,11 @@ class SandboxConfig {
             log.warn("EXECUTION_SANDBOX=local — submissions run as plain child processes WITHOUT filesystem/network isolation. Development only.");
             return new LocalProcessSandbox(p);
         }
+        if ("restricted".equals(p.sandbox())) {
+            LocalProcessSandbox.checkRestrictedSupport();
+            log.warn("EXECUTION_SANDBOX=restricted — submissions run as uid 65534 under the Java SecurityManager, without container isolation.");
+            return new LocalProcessSandbox(p, true);
+        }
         return new DockerSandbox(p);
     }
 }
