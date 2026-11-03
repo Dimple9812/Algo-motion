@@ -5,6 +5,10 @@ import { useBackendStatus, useCreateSolution, useExtractText } from '@/api/hooks
 import { Mascot } from '@/components/mascot/Mascot';
 import { reactionForEvent } from '@/components/mascot/reactions';
 import { Button, Card, ErrorState } from '@/components/ui';
+import { useBackendWake, type ServiceName } from '@/components/backend/useBackendWake';
+import { WakeBanner } from '@/components/backend/WakeBanner';
+
+const SOLVER_NEEDS: ServiceName[] = ['gateway', 'catalog', 'ai', 'execution'];
 
 const MAX_UPLOAD = 5 * 1024 * 1024;
 const ACCEPT = '.txt,.md,.pdf,.png,.jpg,.jpeg,.webp';
@@ -17,7 +21,10 @@ export default function Solve() {
   const create = useCreateSolution();
   const status = useBackendStatus();
   const navigate = useNavigate();
-  const offline = status.data === null;
+  const wake = useBackendWake(SOLVER_NEEDS);
+  // Hosted demo: wait for the woken services. Elsewhere (no wake endpoint): fall back to the gateway status check.
+  const waking = wake.state === 'waking' || wake.state === 'checking';
+  const offline = wake.state === 'unavailable' && status.data === null;
   const reaction = reactionForEvent(
     create.isPending ? 'SOLUTION_GENERATION_STARTED' : create.error ? 'SOLUTION_GENERATION_FAILED' : 'IDLE',
   );
@@ -60,10 +67,11 @@ export default function Solve() {
           </p>
         </div>
       </header>
+      {wake.state === 'waking' && <WakeBanner needs={SOLVER_NEEDS} services={wake.services} />}
       {offline && (
         <ErrorState
           title="Backend not reachable"
-          message="The AI solver runs on the backend (AI solution service + code execution sandbox). On the hosted demo the backend sleeps when idle and takes a minute or two to wake up; this page keeps checking. Running locally? Start the stack with docker compose up. Meanwhile, the visualizer and problem library work without it."
+          message="The AI solver runs on the backend (AI solution service + code execution sandbox). Running locally? Start the stack with docker compose up. Meanwhile, the visualizer and problem library work without it."
         />
       )}
       {status.data && (
@@ -118,7 +126,7 @@ export default function Solve() {
         <Button
           variant="primary"
           size="lg"
-          disabled={text.trim().length < 20 || create.isPending || offline}
+          disabled={text.trim().length < 20 || create.isPending || offline || waking}
           onClick={() => create.mutate(text, { onSuccess: (s) => navigate(`/solve/${s.id}`) })}
         >
           2. Generate solutions

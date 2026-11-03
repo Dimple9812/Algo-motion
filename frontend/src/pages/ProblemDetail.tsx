@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { recordProgress, useExecution, useProblem, useSubmitExecution } from '@/api/hooks';
 import type { Approach, Execution, ProblemDetail as Problem } from '@/api/types';
+import { useBackendWake, type ServiceName } from '@/components/backend/useBackendWake';
+import { WakeBanner } from '@/components/backend/WakeBanner';
 import { CodeEditor } from '@/components/editor/CodeEditor';
 import { Mascot } from '@/components/mascot/Mascot';
 import { reactionForEvent } from '@/components/mascot/reactions';
@@ -128,7 +131,18 @@ function Results({ exec }: { exec: Execution }) {
   );
 }
 
-function Workspace({ p, offline }: { p: Problem; offline: boolean }) {
+const RUN_NEEDS: ServiceName[] = ['gateway', 'catalog', 'execution'];
+
+function Workspace({ p, offline: catalogOffline }: { p: Problem; offline: boolean }) {
+  const wake = useBackendWake(RUN_NEEDS);
+  const qc = useQueryClient();
+  // Hosted demo: the problem may have come from the bundled copy while the catalog slept; reload it once it is up.
+  useEffect(() => {
+    if (wake.state === 'ready' && catalogOffline)
+      void qc.invalidateQueries({ queryKey: ['problem', p.slug] });
+  }, [wake.state, catalogOffline, qc, p.slug]);
+  const waking = wake.state === 'waking' || wake.state === 'checking';
+  const offline = wake.state === 'unavailable' ? catalogOffline : waking;
   const [code, setCode] = useState(p.starterCode);
   const [execId, setExecId] = useState<string | null>(null);
   const submit = useSubmitExecution();
@@ -176,10 +190,11 @@ function Workspace({ p, offline }: { p: Problem; offline: boolean }) {
         >
           Load reference solution
         </Button>
-        {offline && (
+        {offline && !waking && (
           <span className="text-xs text-amber-200">Code execution needs the backend and its sandbox.</span>
         )}
       </div>
+      {wake.state === 'waking' && <WakeBanner needs={RUN_NEEDS} services={wake.services} />}
       {submit.error && (
         <ErrorState
           message={

@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, OfflineError } from '@/api/client';
 import { useLogin, useRegister } from '@/api/hooks';
+import { useBackendWake, type ServiceName } from '@/components/backend/useBackendWake';
+import { WakeBanner } from '@/components/backend/WakeBanner';
 import { Mascot } from '@/components/mascot/Mascot';
 import { Button, Card, Field, inputClass } from '@/components/ui';
 
+const AUTH_NEEDS: ServiceName[] = ['gateway', 'users'];
+
 export default function Auth({ mode }: { mode: 'login' | 'register' }) {
+  const wake = useBackendWake(AUTH_NEEDS);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -81,7 +86,8 @@ export default function Auth({ mode }: { mode: 'login' | 'register' }) {
                 : err.message}
             </p>
           )}
-          <Button type="submit" variant="primary" disabled={m.isPending}>
+          {wake.state === 'waking' && <WakeBanner needs={AUTH_NEEDS} services={wake.services} />}
+          <Button type="submit" variant="primary" disabled={m.isPending || wake.state === 'waking'}>
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </Button>
         </form>
